@@ -65,6 +65,7 @@ def extract_tags(token,label:str):
 
     tag_counts = Counter(taglist).most_common(20)
     df_tag = pd.DataFrame(tag_counts, columns=['text', 'count'])
+    df_tag.to_csv('distribution_tag.csv', index=False)
 
     return df_tag
 
