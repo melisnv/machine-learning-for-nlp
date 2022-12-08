@@ -64,31 +64,17 @@ def extract_features_and_labels(trainingfile):
                 targets.append(components[-1])
     return data, targets
     
-def extract_features(testfile, selected_features):
-    '''Extract features from a preprocessed file with the test data and return them as a list
-    
-    :param trainingfile: path to test file
-    :param selected_features: list of features that were selected to train the model
-    
-    :type testfile: string
-    :type selected_features: list
-    
-    :return features: features as a list of dictionaries'''
-    feature_to_index = {'token': 0, 'pos': 1, 'tag': 2, 'previous': 4, 'latter': 5, 'capitals': 6,'stemm':7,'lemma':8}
-    features = []
-    gold_labels = []
-    
-    conllinput = open(testfile, 'r')
-    csvreader = csv.reader(conllinput, delimiter='\t',quotechar='|')
-    
-    for row in csvreader:
-        feature_value = {}
-        for feature_name in selected_features:
-            row_index = feature_to_index.get(feature_name)
-            feature_value[feature_name] = row[row_index]
-        features.append(feature_value)
-                
-    return features
+def extract_features(inputfile):
+   
+    data = []
+    with open(inputfile, 'r', encoding='utf8') as infile:
+        for line in infile:
+            components = line.rstrip('\n').split()
+            if len(components) > 0:
+                token = components[0]
+                feature_dict = {'token':token}
+                data.append(feature_dict)
+    return data
 
 
 
@@ -110,7 +96,7 @@ def extract_features_and_selected_labels(trainingfile, selected_features):
     
     conllinput = open(trainingfile, 'r')
     csvreader = csv.reader(conllinput, delimiter='\t',quotechar='|')
-    feature_indexes = {'token': 0, 'pos': 1, 'tag': 2, 'previous': 4, 'latter': 5, 'capitals': 6,'stemm':7,'lemma':8}
+    
     for row in csvreader:
         feature_value = {}
         # Only extract the selected features
@@ -125,41 +111,22 @@ def extract_features_and_selected_labels(trainingfile, selected_features):
     return features, gold_labels
 
 def create_classifier(train_features, train_targets, modelname):
-    
-    '''Create a classifier and train it with vectorized features and corresponding gold labels
-    
-    input train_features: features to be transformed into vectors
-    input train_labels: gold labels corresponding to features
-    input modelname: name of the model that will be trained
-    
-    output model: trained classifier
-    output vec: DictVectorizer'''
    
     if modelname ==  'logreg':
         # TIP: you may need to solve this: https://stackoverflow.com/questions/61814494/what-is-this-warning-convergencewarning-lbfgs-failed-to-converge-status-1
-        model = LogisticRegression(max_iter=10000)
-    if modelname == 'NB':
-        model = MultinomialNB()
-    if modelname == 'SVM':
-        model = LinearSVC(max_iter=10000)
-        
+        model = LogisticRegression()
     vec = DictVectorizer()
-    
     features_vectorized = vec.fit_transform(train_features)
     model.fit(features_vectorized, train_targets)
     
     return model, vec
     
-def classify_data(model, vec, inputdata, outputfile,selected_features):
+    
+def classify_data(model, vec, inputdata, outputfile):
   
-    # Extracting features from input data
-    features = extract_features(inputdata,selected_features)
+    features = extract_features(inputdata)
     features = vec.transform(features)
-    
-    # Making prediction
     predictions = model.predict(features)
-    
-    # Writing the results
     outfile = open(outputfile, 'w')
     counter = 0
     for line in open(inputdata, 'r'):
@@ -167,36 +134,6 @@ def classify_data(model, vec, inputdata, outputfile,selected_features):
             outfile.write(line.rstrip('\n') + '\t' + predictions[counter] + '\n')
             counter += 1
     outfile.close()
-
-
-def extract_embeddings_features(inputfile,word_embedding_model):
-    '''
-    This function extracts features from embeddings
-    
-    :param inputfile: path to conll file
-    :param word_embedding_model: a pretrained word embedding model
-    :type conllfile: string
-    :type word_embedding_model: gensim.models.keyedvectors.Word2VecKeyedVectors
-    
-    :return features: list of vector representation of tokens
-    '''
-    ### This code was partially inspired by code included in the HLT course, obtained from https://github.com/cltl/ma-hlt-labs/, accessed in May 2020.
-    features = []
-    
-    conllinput = open(inputfile, 'r')
-    csvreader = csv.reader(conllinput, delimiter='\t',quotechar='|')
-    
-    for row in csvreader:
-        #check for cases where empty lines mark sentence boundaries (which some conll files do).
-        if len(row) > 3:
-            if row[0] in word_embedding_model:
-                vector = word_embedding_model[row[0]]
-            else:
-                vector = [0]*300
-            features.append(vector)
-
-    return features
-
 
 def classify_data_embeddings(model, inputdata, outputfile, word_embedding_model):
     '''
@@ -244,13 +181,13 @@ def main(system_type, argv=None):
     if argv is None:
         argv = sys.argv    
     
-    trainingfile_f = argv[1] # "/Users/orbaytopal/Desktop/VUAI/Master/Machine learning NLP/conll2003.train.conll_extracted_features.conll"
-    inputfile_f = argv[2] #"/Users/orbaytopal/Desktop/VUAI/Master/Machine learning NLP/conll2003.dev.conll_extracted_features.conll"
+    trainingfile_f = argv[1] # "datas/conll2003.train.conll_extracted_features.conll"
+    inputfile_f = argv[2] #"datas/conll2003.dev.conll_extracted_features.conll"
     outputfile_f = argv[3] #"output.conll2003_features"
     trainingfile =argv[4]
     inputfile = argv[5]
     outputfile = argv[6]
-    language_model = argv[7] #"/Users/orbaytopal/Desktop/VUAI/Master/Machine learning NLP/ma-ml4nlp-labs-main/data/GoogleNews-vectors-negative300.bin"
+    language_model = argv[7] #"datas/GoogleNews-vectors-negative300.bin"
 
     
     if system_type == "with_features":
@@ -280,7 +217,7 @@ def main(system_type, argv=None):
         training_features, gold_labels = extract_embeddings_as_features_and_gold(trainingfile, language_model)
 
         # creating the classification model
-        ml_model = create_classifier_embeddings(training_features, gold_labels)
+        ml_model = create_classifier_embeddings(training_features[:1], gold_labels[:1])
         classify_data_embeddings(ml_model, inputfile, outputfile.replace('.conll','.embedded.conll'), language_model)
 
         data_frame = pd.read_table(outputfile.replace('.conll','.embedded.conll'))
@@ -291,56 +228,52 @@ def main(system_type, argv=None):
 
 if __name__ == '__main__':
     import sys
-    argv = sys.argv
     print('please input path to training file with extracted features as argv[1] and path to dev file as argv[2] path to output file as argv[3] path to standard traingfile as argv[4] path to standard devfile as argv[5] and outputfile name for SVM with embeddings as argv[6] and finally path to language model as argv[7]')
-    trainingfile_f = argv[1] # "/Users/orbaytopal/Desktop/VUAI/Master/Machine learning NLP/conll2003.train.conll_extracted_features.conll"
-    inputfile_f = argv[2] #"/Users/orbaytopal/Desktop/VUAI/Master/Machine learning NLP/conll2003.dev.conll_extracted_features.conll"
-    outputfile_f = argv[3] #"Users/orbaytopal/Desktop/VUAI.nosync/Master/Machine learning NLP/ma-ml4nlp-labs-main/data/output.conll2003_features"
-    trainingfile =argv[4] # /Users/orbaytopal/Desktop/VUAI.nosync/Master/Machine learning NLP/ma-ml4nlp-labs-main/data/conll2003.train.conll
-    inputfile = argv[5]  #/Users/orbaytopal/Desktop/VUAI.nosync/Master/Machine learning NLP/ma-ml4nlp-labs-main/data/conll2003.dev.conll
-    outputfile = argv[6] #"Users/orbaytopal/Desktop/VUAI.nosync/Master/Machine learning NLP/ma-ml4nlp-labs-main/data/output.conll2003
-    language_model = argv[7] #"/Users/orbaytopal/Desktop/VUAI/Master/Machine learning NLP/ma-ml4nlp-labs-main/data/GoogleNews-vectors-negative300.bin"
+    trainingfile_f = argv[1] # "datas/conll2003.train.conll_extracted_features.conll"
+    inputfile_f = argv[2] #"datas/conll2003.dev.conll_extracted_features.conll"
+    outputfile_f = argv[3] #"output.conll2003_features"
+    trainingfile =argv[4]
+    inputfile = argv[5]
+    outputfile = argv[6]
+    language_model = argv[7] #"datas/GoogleNews-vectors-negative300.bin"
+
+    selected_features = ["token","pos","tag","previous","latter","capitals","stemm","lemma"]
+    training_features, gold_labels = extract_features_and_selected_labels(trainingfile_f, selected_features)
+    test_features, test_gold_labels = extract_features_and_selected_labels(inputfile_f,selected_features)
+    vec = DictVectorizer()
+    
+    model = MultinomialNB()
+    features_vectorized = vec.fit_transform(training_features)
+    model.fit(features_vectorized, gold_labels)
+    features = vec.transform(test_features)
+    prediction = model.predict(features)
+    print(classification_report(test_gold_labels,prediction))
+    print(confusion_matrix(test_gold_labels, prediction))
+    
+    
+    model = LogisticRegression(max_iter=10000)
+    model.fit(features_vectorized, gold_labels)
+    features = vec.transform(test_features)
+    prediction = model.predict(features)
+    print(classification_report(test_gold_labels,prediction))
+    print(confusion_matrix(test_gold_labels, prediction))
+
+    training_features, gold_labels = extract_embeddings_as_features_and_gold(trainingfile, language_model)
+    # X_test, y_test
+    test_features, tests_gold_labels = extract_embeddings_as_features_and_gold(inputfile, language_model)
+    model = LinearSVC(max_iter=10000)
+    model.fit(training_features[:20000], gold_labels[:20000])
+    prediction = model.predict(test_features)
+    print(classification_report(tests_gold_labels,prediction))
+    print(confusion_matrix(tests_gold_labels, prediction))
+    param_grid = {'C':[1,10,100,1000], 'loss': ['hinge', 'squared_hinge'], 'penalty': ['l1', 'l2']}
+    grid = GridSearchCV(LinearSVC(),param_grid,refit = True, verbose=2)
+    grid.fit(training_features[:20000], gold_labels[:20000])
+    grid.best_params_
+    gold_labels
+    predic = grid.predict(test_features)
+    print(classification_report(tests_gold_labels,predic))
+    print(confusion_matrix(tests_gold_labels, predic))
+
     main(system_type="with_features")
     main(system_type="word_embeddings")
-    # selected_features = ["token","pos","tag","previous","latter","capitals","stemm","lemma"]
-    # training_features, gold_labels = extract_features_and_selected_labels(trainingfile_f, selected_features)
-    # test_features, test_gold_labels = extract_features_and_selected_labels(inputfile_f,selected_features)
-    # vec = DictVectorizer()
-    
-    # print('problem1')
-    # model = MultinomialNB()
-    # features_vectorized = vec.fit_transform(training_features)
-    # model.fit(features_vectorized, gold_labels)
-    # features = vec.transform(test_features)
-    # prediction = model.predict(features)
-    # #print(classification_report(test_gold_labels,prediction))
-    # #print(confusion_matrix(test_gold_labels, prediction))
-    
-    # print('problem2')
-    # model = LogisticRegression(max_iter=10000)
-    # model.fit(features_vectorized, gold_labels)
-    # features = vec.transform(test_features)
-    # prediction = model.predict(features)
-    # #print(classification_report(test_gold_labels,prediction))
-    # #print(confusion_matrix(test_gold_labels, prediction))
-    # print('problem3')
-    # training_features, gold_labels = extract_embeddings_as_features_and_gold(trainingfile, language_model)
-    # # X_test, y_test
-    # test_features, tests_gold_labels = extract_embeddings_as_features_and_gold(inputfile, language_model)
-    # model = LinearSVC(max_iter=10000)
-    # model.fit(training_features[:20000], gold_labels[:20000])
-    # prediction = model.predict(test_features)
-    # #print(classification_report(tests_gold_labels,prediction))
-    # #print(confusion_matrix(tests_gold_labels, prediction))
-    # param_grid = {'C':[1,10,100,1000], 'loss': ['hinge', 'squared_hinge'], 'penalty': ['l1', 'l2']}
-    # grid = GridSearchCV(LinearSVC(),param_grid,refit = True, verbose=2)
-    # grid.fit(training_features[:20000], gold_labels[:20000])
-    # grid.best_params_
-    # #gold_labels
-    # predic = grid.predict(test_features)
-    # #print(classification_report(tests_gold_labels,predic))
-    # #print(confusion_matrix(tests_gold_labels, predic))
-
-
-   
-
