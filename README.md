@@ -36,13 +36,19 @@ There are not extra libraries that you need to install.
 
 To run ner_machine_learning.py:
 
-> python ner_machine_learning.py ‘path to train extracted features files’ ‘ path to dev extracted features file’ ‘path to output file for predictions of models trained on extracted features’ ‘ path to train file initial’ ‘ path to dev file initial’ ‘ path to output file for predictions of svm using word embeddings’  ‘ path to language model’
+```python ner_machine_learning.py ‘path to train extracted features files’ ‘ path to dev extracted features file’ ‘path to output file for predictions of models trained on extracted features’ ‘ path to train file initial’ ‘ path to dev file initial’ ‘ path to output file for predictions of svm using word embeddings’  ‘ path to language model’
+```
 
 To run analyze_distribution.py
 
-> python analyze_distribution.py ‘path to training file’ ‘path to dev file’ ‘ path to output file’ 
+```python analyze_distribution.py ‘path to training file’ ‘path to dev file’ ‘ path to output file’ 
+```
 
 To run feature_extraction.py
 
-> python feature-extraction.py ‘ path to training file’ ‘ path to dev file’ ‘ path to output file’ 
+```python feature-extraction.py ‘ path to training file’ ‘ path to dev file’ ‘ path to output file’
+```
+
+For more information you can check [the course repository of VU](https://github.com/cltl).
+
 
